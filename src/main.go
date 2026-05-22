@@ -58,24 +58,26 @@ func find(w http.ResponseWriter, rq *http.Request) {
 // @Security BearerAuth
 // @Router /query [post]
 func findAndSort(w http.ResponseWriter, rq *http.Request) {
-	type FindAndSort struct {
-		Query map[string]interface{} `json:"query"`
-		Sort  map[string]interface{} `json:"sort"`
-	}
-	var p FindAndSort
-	err := json.NewDecoder(rq.Body).Decode(&p)
+    type FindAndSort struct {
+        Query map[string]interface{} `json:"query"`
+        Sort  map[string]interface{} `json:"sort"`
+    }
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+    var p FindAndSort
+    if err := json.NewDecoder(rq.Body).Decode(&p); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
 
-	value := db.FindAndSort(p.Query, p.Sort)
-	if len(value) == 0 {
-		json.NewEncoder(w).Encode(map[string]string{})
-		return
-	}
-	json.NewEncoder(w).Encode(value)
+    w.Header().Set("Content-Type", "application/json")
+
+    value := db.FindAndSort(p.Query, p.Sort)
+    if len(value) == 0 {
+        _ = json.NewEncoder(w).Encode([]interface{}{})
+        return
+    }
+
+    _ = json.NewEncoder(w).Encode(value)
 }
 
 // @Summary Aggregation
