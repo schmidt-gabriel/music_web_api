@@ -2,11 +2,11 @@ FROM golang:latest AS builder
 
 WORKDIR /app
 
-COPY . /app/
+COPY ./src /app/
 
 RUN go mod download
 
-# build the app
+# Build the app from the module directory.
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o ./out/app .
 
 # Second stage
