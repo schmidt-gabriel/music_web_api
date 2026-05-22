@@ -1,11 +1,13 @@
-name: Build and Push Docker Image
+name: Build and Release
 
 on:
   push:
     branches: [ "main" ]
+    tags: [ "**" ]
 
 jobs:
-  build:
+  docker:
+    if: github.ref_type == 'branch' && github.ref_name == 'main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,3 +30,38 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/${{ github.repository }}:latest
+
+  release-binaries:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ amd64, arm64 ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+
+      - name: Build binary
+        working-directory: src
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p ../dist
+          BIN_NAME="music_web_api-linux-${GOARCH}"
+          go build -trimpath -ldflags="-s -w" -o "../dist/${BIN_NAME}" .
+
+      - name: Upload binary to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/music_web_api-linux-${{ matrix.arch }}
